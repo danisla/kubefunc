@@ -2,6 +2,42 @@ function kube-pod() {
   kubectl get pods --selector=run=$1 --output=jsonpath={.items..metadata.name}
 }
 
+function helm-install() {
+  VERSION=${1:-2.8.1}
+
+  case "$(uname)" in
+  "Linux")
+  URL="https://storage.googleapis.com/kubernetes-helm/helm-v${VERSION}-linux-amd64.tar.gz"
+  ;;
+  "Darwin")
+  URL="https://storage.googleapis.com/kubernetes-helm/helm-v${VERSION}-darwin-amd64.tar.gz"
+  ;;
+  *)
+  echo "Unsupported platform: $(uname)"
+  return 1
+  ;;
+  esac 
+  
+  # Extract helm to ${HOME}/bin
+  (cd /tmp && curl -sL -o- "${URL}" | tar --strip-components 1 -z -x -f - && \
+    rm LICENSE README.md && mkdir -p ${HOME}/bin/ && mv helm ${HOME}/bin/helm)
+
+  # Add ${HOME}/bin to PATH
+  if [[ -z $(grep 'export PATH=${HOME}/bin:${PATH}' ~/.bashrc) ]]; then
+  	echo 'export PATH=${HOME}/bin:${PATH}' >> ~/.bashrc
+  fi
+  
+  echo "Installed: ${HOME}/bin/helm version v${VERSION}"
+
+    cat - << EOF 
+ 
+Run the following to reload your PATH with helm:
+
+  source ~/.bashrc
+
+EOF
+}
+
 function helm-install-rbac() {
 	kubectl create serviceaccount tiller --namespace kube-system
   kubectl create clusterrolebinding tiller-cluster-rule \
