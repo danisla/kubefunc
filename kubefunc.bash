@@ -109,8 +109,7 @@ function kubeadm-download() {
 }
 
 function kube-shell() {
-  NAMESPACE=${1:-default}
-  kubectl run -it --rm --restart=Never kube-shell --image centos:latest -- bash
+  kubectl run -it --rm --restart=Never kube-shell --image centos:latest -- ${1-bash}
 }
 
 function helm-install-elasticsearch() {
