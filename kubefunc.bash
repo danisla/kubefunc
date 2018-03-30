@@ -3,7 +3,7 @@ function kube-pod() {
 }
 
 function helm-install() {
-  VERSION=${1:-2.8.1}
+  VERSION=${1:-2.8.2}
 
   case "$(uname)" in
   "Linux")
@@ -38,13 +38,9 @@ Run the following to reload your PATH with helm:
 EOF
 }
 
-function helm-install-rbac() {
-	kubectl create serviceaccount tiller --namespace kube-system
-  kubectl create clusterrolebinding tiller-cluster-rule \
-    --clusterrole=cluster-admin \
-    --serviceaccount=kube-system:tiller
-  helm init --service-account=tiller
-  helm repo update
+function helm-install-github() {
+  helm plugin install \
+    --version master https://github.com/sagansystems/helm-github.git
 }
 
 function install-kubectl() { 
@@ -72,21 +68,40 @@ function kube-staging-prod-configs() {
 }
 
 function kube-node-admin() {
+  NODE=$1
+  [[ -n "${NODE}" ]] && read -r -d '' SPEC_AFFINITY <<- EOM
+    "affinity": {
+      "nodeAffinity": {
+        "requiredDuringSchedulingIgnoredDuringExecution": {
+          "nodeSelectorTerms": [
+            {
+              "matchExpressions": [
+                {
+                  "key": "kubernetes.io/hostname",
+                  "operator": "In",
+                  "values": [ "${NODE}" ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+EOM
+
   read -r -d '' SPEC_JSON <<EOF
 {
   "apiVersion": "v1",
   "spec": {
+    ${SPEC_AFFINITY}
+    "hostNetwork": true,
     "containers": [{
       "name": "node-admin",
       "securityContext": {
         "privileged": true
       },
-      "image": "debian:latest",
-      "args": [
-        "chroot",
-        "/hostfs",
-        "/bin/bash"
-      ],
+      "image": "alpine:3.7",
+      "args": ["chroot", "/hostfs", "/bin/bash"],
       "stdin": true,
       "stdinOnce": true,
       "tty": true,
@@ -109,6 +124,7 @@ EOF
 }
 
 function helm-install-rbac() {
+  kubectl create clusterrolebinding default-admin --clusterrole=cluster-admin --user=$(gcloud config get-value account)
   kubectl create serviceaccount tiller --namespace kube-system
   kubectl create clusterrolebinding tiller-cluster-rule   --clusterrole=cluster-admin   --serviceaccount=kube-system:tiller
   helm init --service-account=tiller
@@ -146,6 +162,10 @@ function kubeadm-download() {
 
 function kube-shell() {
   kubectl run -it --rm --restart=Never kube-shell --image centos:latest -- ${1-bash}
+}
+
+function kube-shell-gcp() {
+  kubectl run -it --rm --restart=Never kube-shell --image google/cloud-sdk:alpine -- ${1-bash}
 }
 
 function helm-install-elasticsearch() {
