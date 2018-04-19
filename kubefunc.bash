@@ -126,9 +126,9 @@ EOF
 function helm-install-rbac() {
   kubectl create clusterrolebinding default-admin --clusterrole=cluster-admin --user=$(gcloud config get-value account)
   kubectl create serviceaccount tiller --namespace kube-system
-  kubectl create clusterrolebinding tiller-cluster-rule   --clusterrole=cluster-admin   --serviceaccount=kube-system:tiller
+  kubectl create clusterrolebinding tiller-cluster-rule --clusterrole=cluster-admin --serviceaccount=kube-system:tiller
   helm init --service-account=tiller
-  until (helm version > /dev/null 2>&1); do echo "Waiting for tiller install..."; sleep 2; done
+  until (helm version --tiller-connection-timeout=1 >/dev/null 2>&1); do echo "Waiting for tiller install..."; sleep 2; done
   echo "Helm install complete"
   helm version
 }
@@ -188,4 +188,61 @@ function helm-delete-elasticsearch() {
   helm delete --purge elasticsearch
   kubectl delete pvc -l release=elasticsearch,component=data
   kubectl delete pvc -l release=elasticsearch,component=master
+}
+
+kube-config-headless() {
+  # from: https://gke.ahmet.im/auth/headless-auth-without-gcloud/
+  CLUSTER=$1
+  ZONE=$2
+  [[ -z "$CLUSTER" || -z "${ZONE}" ]] && echo "USAGE: eval \$(kube-config-headless <cluster> <zone>)" && return 1
+  YAML="kubeconfig-${CLUSTER}-${ZONE}.yaml"
+  CLUSTER_USER=$(gcloud config get-value account 2>/dev/null)
+  GET_CMD="gcloud container clusters describe ${CLUSTER} --zone=${ZONE}"
+  cat > ${YAML} <<EOF
+apiVersion: v1
+kind: Config
+current-context: ${CLUSTER}-${ZONE}
+contexts: [{name: ${CLUSTER}-${ZONE}, context: {cluster: ${CLUSTER}-${ZONE}, user: ${CLUSTER_USER}}}]
+users: [{name: ${CLUSTER_USER}, user: {auth-provider: {name: gcp}}}]
+clusters:
+- name: ${CLUSTER}-${ZONE}
+  cluster:
+    server: "https://$(eval "$GET_CMD --format='value(endpoint)'")"
+    certificate-authority-data: "$(eval "$GET_CMD --format='value(masterAuth.clusterCaCertificate)'")"
+EOF
+  echo "export KUBECONFIG=\${PWD}/${YAML}"
+}
+
+kube-config-headless-regional() {
+  # from: https://gke.ahmet.im/auth/headless-auth-without-gcloud/
+  CLUSTER=$1
+  REGION=$2
+  [[ -z "$CLUSTER" || -z "${REGION}" ]] && echo "USAGE: eval \$(kube-config-headless <cluster> <zone>)" && return 1
+  YAML="kubeconfig-${CLUSTER}-${REGION}.yaml"
+  CLUSTER_USER=$(gcloud config get-value account 2>/dev/null)
+  export CLOUDSDK_CONTAINER_USE_V1_API_CLIENT=false
+  GET_CMD="gcloud beta container clusters describe ${CLUSTER} --region=${REGION}"
+  cat > ${YAML} <<EOF
+apiVersion: v1
+kind: Config
+current-context: ${CLUSTER}-${REGION}
+contexts: [{name: ${CLUSTER}-${REGION}, context: {cluster: ${CLUSTER}-${REGION}, user: ${CLUSTER_USER}}}]
+users: [{name: ${CLUSTER_USER}, user: {auth-provider: {name: gcp}}}]
+clusters:
+- name: ${CLUSTER}-${REGION}
+  cluster:
+    server: "https://$(eval "$GET_CMD --format='value(endpoint)'")"
+    certificate-authority-data: "$(eval "$GET_CMD --format='value(masterAuth.clusterCaCertificate)'")"
+EOF
+  echo "export KUBECONFIG=\${PWD}/${YAML}"
+}
+
+kube-node-cluster-admin() {
+  for node in $(kubectl get nodes -o jsonpath='{..name}'); do 
+    kubectl create clusterrolebinding admin-${node} --clusterrole=cluster-admin --user=system:node:${node}
+  done
+}
+
+kube-get-external-ip() {
+  kubectl run example -i -t --rm --restart=Never --image centos:7 -- curl -s http://ipinfo.io/ip
 }
