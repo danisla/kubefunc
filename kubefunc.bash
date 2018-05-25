@@ -161,11 +161,11 @@ function kubeadm-download() {
 }
 
 function kube-shell() {
-  kubectl run -it --rm --restart=Never kube-shell --image centos:latest -- ${1-bash}
+  kubectl run -n ${KUBE_SHELL_NAMESPACE:-default} -it --rm --restart=Never kube-shell --image centos:latest -- ${1-bash}
 }
 
 function kube-shell-gcp() {
-  kubectl run -it --rm --restart=Never kube-shell --image google/cloud-sdk:alpine -- ${1-bash}
+  kubectl run -n ${KUBE_SHELL_NAMESPACE:-default} -it --rm --restart=Never kube-shell-gcp --image google/cloud-sdk:alpine -- ${1-bash}
 }
 
 function helm-install-elasticsearch() {
