@@ -168,6 +168,38 @@ function kube-shell-gcp() {
   kubectl run -n ${KUBE_SHELL_NAMESPACE:-default} -it --rm --restart=Never kube-shell-gcp --image google/cloud-sdk:alpine -- ${1-bash}
 }
 
+function kube-shell-gcp-docker() {
+  kubectl run -n ${KUBE_SHELL_NAMESPACE:-default} -it --rm --restart=Never kube-shell-gcp --overrides='
+{
+  "apiVersion": "v1",
+  "spec": {
+    "containers": [
+      {
+        "name": "cloud-sdk",
+        "image": "google/cloud-sdk:alpine",
+        "args": [
+          "bash"
+        ],
+        "stdin": true,
+        "stdinOnce": true,
+        "tty": true,
+        "volumeMounts": [{
+          "mountPath": "/var/run/docker.sock",
+          "name": "docker"
+        }]
+      }
+    ],
+    "volumes": [{
+      "name":"docker",
+      "hostPath":{
+        "path": "/var/run/docker.sock"
+      }
+    }]
+  }
+}
+' --image google/cloud-sdk:alpine -- ${1-bash}
+}
+
 function helm-install-elasticsearch() {
   # Installs Elasticsearch chart with internal loadbalancer.
   helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
