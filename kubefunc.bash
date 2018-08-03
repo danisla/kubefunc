@@ -3,7 +3,7 @@ function kube-pod() {
 }
 
 function helm-install() {
-  VERSION=${1:-2.8.2}
+  VERSION=${1:-2.9.1}
 
   case "$(uname)" in
   "Linux")
@@ -44,7 +44,7 @@ function helm-install-github() {
 }
 
 function install-kubectl() { 
-    K8S_VERSION=${1:-v1.8.1};
+    K8S_VERSION=${1:-v1.11.1};
     OS=${2:-darwin}
     ARCH=amd64;
     ROOTFS=${HOME};
@@ -222,7 +222,77 @@ function helm-delete-elasticsearch() {
   kubectl delete pvc -l release=elasticsearch,component=master
 }
 
-kube-config-headless() {
+function helm-install-cloud-endpoints-controller() {
+  # Install helm github plugin
+  [[ ! -d ~/.helm/plugins/helm-github.git ]] && helm plugin install --version master https://github.com/sagansystems/helm-github.git
+
+  # Install metacontroller
+  helm github install \
+    --name metacontroller \
+    --namespace metacontroller \
+    --repo https://github.com/danisla/cloud-endpoints-controller.git \
+    --ref master \
+    --path charts/kube-metacontroller
+  
+  # Install cloud endpoints controller
+  helm github install \
+    --name cloud-endpoints-controller \
+    --namespace metacontroller \
+    --repo https://github.com/danisla/cloud-endpoints-controller.git \
+    --ref master \
+    --path charts/cloud-endpoints-controller
+}
+
+function helm-delete-cloud-endpoints-controller() {
+  helm delete --purge cloud-endpoints-controller
+  helm delete --purge metacontroller
+}
+
+function helm-install-cert-manager() {
+  helm install --name cert-manager --namespace kube-system stable/cert-manager
+  EMAIL=$(gcloud config get-value account)
+
+  cat <<EOF | kubectl apply -f -
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-staging
+  namespace: kube-system
+spec:
+  acme:
+    server: https://acme-staging-v02.api.letsencrypt.org/directory
+    email: ${EMAIL}
+
+    # Name of a secret used to store the ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt-staging
+    # Enable the HTTP-01 challenge provider
+    http01: {}
+---
+apiVersion: certmanager.k8s.io/v1alpha1
+kind: ClusterIssuer
+metadata:
+  name: letsencrypt-production
+  namespace: kube-system
+spec:
+  acme:
+    server: https://acme-v02.api.letsencrypt.org/directory
+    email: ${EMAIL}
+
+    # Name of a secret used to store the ACME account private key
+    privateKeySecretRef:
+      name: letsencrypt-production
+    # Enable the HTTP-01 challenge provider
+    http01: {}
+EOF
+}
+
+function helm-delete-cert-manager() {
+  kubectl delete clusterissuer letsencrypt-staging letsencrypt-production
+  helm delete --purge cert-manager
+}
+
+function kube-config-headless() {
   # from: https://gke.ahmet.im/auth/headless-auth-without-gcloud/
   CLUSTER=$1
   ZONE=$2
@@ -245,7 +315,7 @@ EOF
   echo "export KUBECONFIG=\${PWD}/${YAML}"
 }
 
-kube-config-headless-regional() {
+function kube-config-headless-regional() {
   # from: https://gke.ahmet.im/auth/headless-auth-without-gcloud/
   CLUSTER=$1
   REGION=$2
@@ -269,12 +339,12 @@ EOF
   echo "export KUBECONFIG=\${PWD}/${YAML}"
 }
 
-kube-node-cluster-admin() {
+function kube-node-cluster-admin() {
   for node in $(kubectl get nodes -o jsonpath='{..name}'); do 
     kubectl create clusterrolebinding admin-${node} --clusterrole=cluster-admin --user=system:node:${node}
   done
 }
 
-kube-get-external-ip() {
+function kube-get-external-ip() {
   kubectl run example -i -t --rm --restart=Never --image centos:7 -- curl -s http://ipinfo.io/ip
 }
