@@ -3,39 +3,7 @@ function kube-pod() {
 }
 
 function helm-install() {
-  VERSION=${1:-2.9.1}
-
-  case "$(uname)" in
-  "Linux")
-  URL="https://storage.googleapis.com/kubernetes-helm/helm-v${VERSION}-linux-amd64.tar.gz"
-  ;;
-  "Darwin")
-  URL="https://storage.googleapis.com/kubernetes-helm/helm-v${VERSION}-darwin-amd64.tar.gz"
-  ;;
-  *)
-  echo "Unsupported platform: $(uname)"
-  return 1
-  ;;
-  esac 
-  
-  # Extract helm to ${HOME}/bin
-  (cd /tmp && curl -sL -o- "${URL}" | tar --strip-components 1 -z -x -f - && \
-    rm LICENSE README.md && mkdir -p ${HOME}/bin/ && mv helm ${HOME}/bin/helm)
-
-  # Add ${HOME}/bin to PATH
-  if [[ -z $(grep 'export PATH=${HOME}/bin:${PATH}' ~/.bashrc) ]]; then
-  	echo 'export PATH=${HOME}/bin:${PATH}' >> ~/.bashrc
-  fi
-  
-  echo "Installed: ${HOME}/bin/helm version v${VERSION}"
-
-    cat - << EOF 
- 
-Run the following to reload your PATH with helm:
-
-  source ~/.bashrc
-
-EOF
+  curl -L https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get | bash
 }
 
 function helm-install-github() {
@@ -290,6 +258,114 @@ EOF
 function helm-delete-cert-manager() {
   kubectl delete clusterissuer letsencrypt-staging letsencrypt-production
   helm delete --purge cert-manager
+}
+
+function kube-cloudep-service-ingress() {
+  SERVICE=$1
+  PORT=$2
+
+  [[ -z "${SERVICE}" && -z "${PORT}" ]] && echo "USAGE: kube-cloudep-service-ingress <service name> <service port>" && return 1
+
+  PROJECT=$(gcloud config get-value project)
+  HOST="${SERVICE}.endpoints.${PROJECT}.cloud.goog"
+
+  echo "INFO: Creating Cloud Endpoints service: ${EP}"
+  cat <<EOF | kubectl apply -f -
+apiVersion: ctl.isla.solutions/v1
+kind: CloudEndpoint
+metadata:
+  name: ${SERVICE}
+spec:
+  project: ${PROJECT}
+  targetIngress:
+    name: ${SERVICE}-ingress
+    namespace: default
+EOF
+
+  echo "INFO: Creating Ingress for service: ${SERVICE}:${PORT}"
+  cat <<EOF | kubectl apply -f -
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ${SERVICE}-ingress
+  annotations:
+    kubernetes.io/ingress.class: gce
+    ingress.kubernetes.io/ssl-redirect: "true"
+    cloud.google.com/managed-certificates: "${SERVICE}"
+spec:
+  rules:
+  - host: "${HOST}"
+    http:
+     paths:
+     - path: /
+       backend:
+         serviceName: ${SERVICE}
+         servicePort: ${PORT}
+EOF
+
+  echo "INFO: Creating managed SSL certificate"
+  cat <<EOF | kubectl apply -f -
+apiVersion: cloud.google.com/v1alpha1
+kind: ManagedCertificate
+metadata:
+  name: ${SERVICE}
+spec:
+  domains:
+    - ${HOST}
+EOF
+}
+
+function kube-enable-iap() {
+  SERVICE=$1
+  PORT_NAME=$2
+  [[ -z "${SERVICE}" && -z "${PORT_NAME}" ]] && echo "USAGE: kube-enable-iap <service name> <port name>" && return 1
+
+  [[ -z "${CLIENT_ID}" && -z "${CLIENT_SECRET}" ]] && echo "ERROR: CLIENT_ID and CLIENT_SECRET not set." && return 1
+  kubectl create secret generic oauth --from-literal=client_id=${CLIENT_ID} --from-literal=client_secret=${CLIENT_SECRET}
+
+  cat <<EOF | kubectl apply -f -
+apiVersion: cloud.google.com/v1beta1
+kind: BackendConfig
+metadata:
+  name: ${SERVICE}-${PORT_NAME}
+spec:
+  iap:
+    enabled: true
+    oauthclientCredentials:
+      secretName: oauth
+EOF
+  echo "Add the following annotation to your service:"
+  cat <<EOF
+  annotations:
+    beta.cloud.google.com/backend-config:
+      '{"ports": {"${PORT_NAME}":"${SERVICE}-${PORT_NAME}"}}'
+EOF
+}
+
+function kube-ingress-gce-ssl() {
+  SERVICE=$1
+  PORT=$2
+  HOST=$3
+  [[ -z "${SERVICE}" && -z "${PORT}" && -z "${HOST}" ]] && echo "USAGE: kube-ingress-gce <service name> <service port> <DNS hostname>" && return 1
+
+  cat <<EOF
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: ${SERVICE}-ingress
+  annotations:
+    kubernetes.io/ingress.class: gce
+    ingress.kubernetes.io/ssl-redirect: "true"
+spec:
+  rules:
+  - host: "${HOST}"
+    http:
+     paths:
+     - path: /
+       backend:
+         serviceName: ${SERVICE}
+         servicePort: ${PORT}
+EOF
 }
 
 function kube-config-headless() {
