@@ -10,7 +10,7 @@ function helm-install-cloud-endpoints-controller() {
     --namespace metacontroller \
     --repo https://github.com/danisla/cloud-endpoints-controller.git \
     --ref master \
-    --path charts/kube-metacontroller
+    --path charts/metacontroller
   
   # Install cloud endpoints controller
   helm github install \
