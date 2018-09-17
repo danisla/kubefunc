@@ -13,12 +13,12 @@ function helm-install-github() {
 
 function install-kubectl() { 
     K8S_VERSION=${1:-v1.11.1};
-    OS=${2:-darwin}
+    OS=$(uname)
     ARCH=amd64;
     ROOTFS=${HOME};
     BIN_DIR=bin;
     K8S_URL=${K8S_URL:-https://storage.googleapis.com/kubernetes-release/release};
-    curl -sfSL ${K8S_URL}/${K8S_VERSION}/bin/${OS}/${ARCH}/kubectl > ${ROOTFS}/${BIN_DIR}/kubectl;
+    curl -sfSL ${K8S_URL}/${K8S_VERSION}/bin/${OS,,}/${ARCH}/kubectl > ${ROOTFS}/${BIN_DIR}/kubectl;
     [[ $? -ne 0 ]] && echo "ERROR: could not download kubectl" && return 1;
     chmod +x ${ROOTFS}/${BIN_DIR}/kubectl;
     echo "Installed kubectl in ${BIN_DIR}/kubectl"
