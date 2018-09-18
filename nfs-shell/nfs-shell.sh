@@ -2,7 +2,7 @@
 
 export POD_NAME=""
 function cleanup() {
-    [[ -n "${POD_NAME}" ]] && kubectl delete pod ${POD_NAME}
+    [[ -n "${POD_NAME}" ]] && kubectl delete pod ${POD_NAME} >/dev/null 2>&1 || true
 }
 trap cleanup EXIT TERM
 
@@ -59,7 +59,6 @@ EOF
     id=$(printf "%x" $((RANDOM + 100000)))
     POD_NAME="nfs-shell-${id}"
     kubectl run -n ${KUBECTL_PLUGINS_CURRENT_NAMESPACE:-default} ${POD_NAME} -i -t --rm --restart=Never --image=debian:latest --overrides="${SPEC_JSON}"
-    POD_NAME=""
 }
 
 kube-nfs-shell $@
