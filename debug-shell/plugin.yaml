@@ -12,12 +12,14 @@
 # See the License for the specific language governing permissions and
 # limitations under the License.
 
-name: "kube-node-admin"
-shortDesc: "List nodes and run privileged pod with chroot"
+name: "debug-shell"
+shortDesc: "Create interactive pod for debugging"
 longDesc: >
-  Useful for debugging kubernetes nodes.
-  Displays list of available nodes to select from.
-  Runs a privileged pod that mounts and chroots into the host filesystem.
+  Run an interactive pod in the cluster for debugging purposes.
+  Pod is removed when shell exists.
+  Default image is 'centos:latest' and the first argument will change this.
+  Image must have bash installed.
   Example:
-    kubectl plugin kube-node-admin
-command: ./kube-node-admin.sh
+    kubectl plugin debug-shell
+    kubectl plugin debug-shell google/cloud-sdk:alpine
+command: ./debug-shell.sh
