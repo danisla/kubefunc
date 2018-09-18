@@ -1,10 +1,9 @@
 # kubefunc
-Collection of handy kubernetes related helper scripts and bash functions.
+Collection of handy kubernetes related plugins and bash functions.
 
-## Usage
+## Plugin Install
 
 ```sh
-git clone https://github.com/danisla/kubefunc.git
-echo "source ${PWD}/kubefunc/kubefunc.bash" >> ${HOME}/.bash_profile
-source ${HOME}/.bash_profile
+mkdir -p ${HOME}/.kube/plugins
+git clone https://github.com/danisla/kubefunc.git ${HOME}/.kube/plugins/kubefunc
 ```
