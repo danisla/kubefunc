@@ -35,7 +35,8 @@ function kube-nfs-shell() {
   "spec": {
     "containers": [{
       "name": "shell",
-      "image": "alpine:3.7",
+      "command": ["bash"],
+      "image": "debian:latest",
       "stdin": true,
       "stdinOnce": true,
       "tty": true,
@@ -54,10 +55,9 @@ function kube-nfs-shell() {
   }
 }
 EOF
-    ts=$(date +%s)
-    POD_NAME="nfs-shell-${ts}"
-    NAMESPACE=${KUBECTL_PLUGINS_CURRENT_NAMESPACE:-default}
-    kubectl run -n ${NAMESPACE} ${POD_NAME} -i -t --rm --restart=Never --image=alpine:3.7 --overrides="${SPEC_JSON}"
+    id=$(printf "%x" $((RANDOM + 100000)))
+    POD_NAME="nfs-shell-${id}"
+    kubectl run -n ${KUBECTL_PLUGINS_CURRENT_NAMESPACE:-default} ${POD_NAME} -i -t --rm --restart=Never --image=debian:latest --overrides="${SPEC_JSON}"
     POD_NAME=""
 }
 

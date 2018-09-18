@@ -17,7 +17,7 @@ shortDesc: "Create interactive pod for debugging data in NFS mounts"
 longDesc: >
   Run an interactive pod in the cluster for debugging purposes.
   Pod is removed when shell exists.
-  Default image is 'debian:latest'
+  Image is 'debian:latest'
   First argument is the SERVER:PATH for the NFS mount. 
   If no arguments are given, you will be prompted for the SERVER:PATH.
   Example:
