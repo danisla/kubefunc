@@ -37,6 +37,7 @@ function kube-nfs-shell() {
       "name": "shell",
       "command": ["bash"],
       "image": "debian:latest",
+      "workingDir": "/mnt/nfs",
       "stdin": true,
       "stdinOnce": true,
       "tty": true,
