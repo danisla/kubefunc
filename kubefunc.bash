@@ -175,6 +175,13 @@ function kube-shell-node-pool() {
     --image centos:latest -- bash
 }
 
+function kube-shell-node() {
+  NODE=${1?"USAGE: kube-shell-node <node name>"}
+  kubectl run -n ${KUBE_SHELL_NAMESPACE:-default} -it --rm --restart=Never kube-shell \
+  --overrides='{"apiVersion": "v1", "spec": {"nodeSelector": { "kubernetes.io/hostname": "'${NODE}'" }}}' \
+    --image centos:latest -- bash
+}
+
 function helm-install-elasticsearch() {
   # Installs Elasticsearch chart with internal loadbalancer.
   helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
