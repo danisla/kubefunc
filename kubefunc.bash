@@ -168,6 +168,13 @@ function kube-shell-gcp-docker() {
 ' --image google/cloud-sdk:alpine -- ${1-bash}
 }
 
+function kube-shell-node-pool() {
+  NODE_POOL=${1:-default}
+  kubectl run -n ${KUBE_SHELL_NAMESPACE:-default} -it --rm --restart=Never kube-shell \
+    --overrides='{"apiVersion": "v1", "spec": {"nodeSelector": { "cloud.google.com/gke-nodepool": "'${NODE_POOL}'" }}}' \
+    --image centos:latest -- bash
+}
+
 function helm-install-elasticsearch() {
   # Installs Elasticsearch chart with internal loadbalancer.
   helm repo add incubator http://storage.googleapis.com/kubernetes-charts-incubator
