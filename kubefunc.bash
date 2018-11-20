@@ -424,3 +424,7 @@ function kube-node-cluster-admin() {
 function kube-get-external-ip() {
   kubectl run example -i -t --rm --restart=Never --image centos:7 -- curl -s http://ipinfo.io/ip
 }
+
+function kube-pod-cidrs() {
+  kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.podCIDR}{"\n"}{end}'
+}
