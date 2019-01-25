@@ -1,7 +1,12 @@
 #!/usr/bin/env bash
 
 function helm-install-cert-manager() {
-  helm install --name cert-manager --namespace kube-system stable/cert-manager
+  # Install CRD
+  kubectl apply \
+    -f https://raw.githubusercontent.com/jetstack/cert-manager/release-0.6/deploy/manifests/00-crds.yaml
+  
+  # Install chart
+  helm install --wait --name cert-manager --namespace kube-system stable/cert-manager
   EMAIL=$(gcloud config get-value account)
 
   cat <<EOF | kubectl apply -f -
