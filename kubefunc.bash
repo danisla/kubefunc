@@ -62,6 +62,13 @@ EOM
   "apiVersion": "v1",
   "spec": {
     ${SPEC_AFFINITY}
+    "tolerations": [
+        {
+            "key": "nvidia.com/gpu",
+            "effect": "NoSchedule",
+            "operator": "Exists"
+        }
+    ],
     "hostNetwork": true,
     "containers": [{
       "name": "node-admin",
