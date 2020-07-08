@@ -64,7 +64,6 @@ EOM
     ${SPEC_AFFINITY}
     "tolerations": [
         {
-            "key": "nvidia.com/gpu",
             "effect": "NoSchedule",
             "operator": "Exists"
         }
@@ -83,6 +82,9 @@ EOM
       "volumeMounts": [{
         "name": "hostfs",
         "mountPath": "/hostfs"
+      },{
+        "name": "docker",
+        "mountPath": "/var/run/docker.sock"
       }]
     }],
     "volumes": [{
@@ -91,11 +93,89 @@ EOM
         "path": "/",
         "type": "Directory"
       }
+    },{
+      "name": "docker",
+      "hostPath": {
+        "path": "/var/run/docker.sock",
+        "type": "File"
+      }
     }]
   }
 }
 EOF
   kubectl run node-admin -i -t --rm --restart=Never --image=debian:latest --overrides="${SPEC_JSON}"
+}
+
+function kube-node-gcloud() {
+  NODE=$1
+  [[ -n "${NODE}" ]] && read -r -d '' SPEC_AFFINITY <<- EOM
+    "affinity": {
+      "nodeAffinity": {
+        "requiredDuringSchedulingIgnoredDuringExecution": {
+          "nodeSelectorTerms": [
+            {
+              "matchExpressions": [
+                {
+                  "key": "kubernetes.io/hostname",
+                  "operator": "In",
+                  "values": [ "${NODE}" ]
+                }
+              ]
+            }
+          ]
+        }
+      }
+    },
+EOM
+
+  read -r -d '' SPEC_JSON <<EOF
+{
+  "apiVersion": "v1",
+  "spec": {
+    ${SPEC_AFFINITY}
+    "tolerations": [
+        {
+            "key": "nvidia.com/gpu",
+            "effect": "NoSchedule",
+            "operator": "Exists"
+        }
+    ],
+    "hostNetwork": true,
+    "containers": [{
+      "name": "node-admin",
+      "securityContext": {
+        "privileged": true
+      },
+      "image": "gcr.io/google.com/cloudsdktool/cloud-sdk:alpine",
+      "command": ["/bin/bash"],
+      "stdin": true,
+      "stdinOnce": true,
+      "tty": true,
+      "volumeMounts": [{
+        "name": "hostfs",
+        "mountPath": "/hostfs"
+      },{
+        "name": "docker",
+        "mountPath": "/var/run/docker.sock"
+      }]
+    }],
+    "volumes": [{
+      "name": "hostfs",
+      "hostPath": {
+        "path": "/",
+        "type": "Directory"
+      }
+    },{
+      "name": "docker",
+      "hostPath": {
+        "path": "/var/run/docker.sock",
+        "type": "File"
+      }
+    }]
+  }
+}
+EOF
+  kubectl run node-gcloud -i -t --rm --restart=Never --image=gcr.io/google.com/cloudsdktool/cloud-sdk:alpine --overrides="${SPEC_JSON}"
 }
 
 function helm-install-rbac() {
@@ -448,4 +528,15 @@ function kube-get-external-ip() {
 
 function kube-pod-cidrs() {
   kubectl get nodes -o jsonpath='{range .items[*]}{.metadata.name}{"\t"}{.spec.podCIDR}{"\n"}{end}'
+}
+
+function kube-workload-identity-test() {
+  local NAMESPACE=$1
+  local SA=$2
+  [[ -z "$NAMESPACE" || -z "$SA" ]] && echo "USAGE: kube-workload-identity-test <namespace> <service account>" && return 1
+  kubectl run -it --rm \
+    --image google/cloud-sdk:slim \
+    --serviceaccount $SA \
+    --namespace $NAMESPACE \
+    workload-identity-test-$(date +%s)
 }
