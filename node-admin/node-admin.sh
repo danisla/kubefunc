@@ -23,13 +23,6 @@ function kube-node-admin() {
     "nodeSelector": {
       "kubernetes.io/hostname": "${NODE}"
     },
-    "tolerations": [
-      {
-        "effect": "NoSchedule",
-        "key": "node-role.kubernetes.io/master",
-        "operator": "Exists"
-      }
-    ],
 EOM
 
   read -r -d '' SPEC_JSON <<EOF
@@ -37,6 +30,12 @@ EOM
   "apiVersion": "v1",
   "spec": {
     ${SPEC_NODE_SELECTOR}
+    "tolerations": [
+      {
+        "effect": "NoSchedule",
+        "operator": "Exists"
+      }
+    ],
     "hostNetwork": true,
     "containers": [{
       "name": "node-admin",
