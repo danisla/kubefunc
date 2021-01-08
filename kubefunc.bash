@@ -1,3 +1,18 @@
+function download-latest-k9s() {
+  mkdir -p ${HOME}/bin
+  export URL=$(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | \
+    grep "https.*k9s_Linux_x86_64.tar.gz" | \
+    cut -d : -f 2,3 | \
+    tr -d \" | tr -d ' ')
+  echo "INFO: Downloading K9s: $URL"
+  (
+    cd ${HOME}/bin && \
+    curl -sfL ${URL} | tar -zxf - k9s
+  )
+  chmod +x ${HOME}/bin/k9s
+  echo "INFO: Installed to: ${HOME}/bin/k9s"
+}
+
 function kube-pod() {
   kubectl get pods --selector=run=$1 --output=jsonpath={.items..metadata.name}
 }
