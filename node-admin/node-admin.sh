@@ -45,13 +45,14 @@ EOM
   "spec": {
     ${SPEC_AFFINITY}
     "hostNetwork": true,
+    "hostPID": true,
     "containers": [{
       "name": "node-admin",
       "securityContext": {
         "privileged": true
       },
-      "image": "alpine:3.7",
-      "args": ["chroot", "/hostfs", "/bin/bash"],
+      "image": "alpine:3.9",
+      "args": ["nsenter", "-m/proc/1/ns/mnt", "/bin/bash"],
       "stdin": true,
       "stdinOnce": true,
       "tty": true,
