@@ -13,6 +13,19 @@ function download-latest-k9s() {
   echo "INFO: Installed to: ${HOME}/bin/k9s"
 }
 
+function download-latest-istioctl() {
+    mkdir -p ${HOME}/bin
+    export URL=$(curl -s https://api.github.com/repos/istio/istio/releases/latest | \
+      grep -v sha256 | grep "https.*istio-.*-linux-amd64.tar.gz" | \
+      cut -d : -f 2,3 | \
+      tr -d \" | tr -d ' ')
+    echo "INFO: Downloading istio: $URL"
+    (
+      cd ${HOME}/bin && \
+      curl -sfL ${URL} | tar --strip-components=2 --wildcards -zxvf - '*/bin/istioctl'
+    )
+}
+
 function kube-pod() {
   kubectl get pods --selector=run=$1 --output=jsonpath={.items..metadata.name}
 }
