@@ -569,3 +569,15 @@ function kube-workload-identity-test() {
     --namespace $NAMESPACE \
     workload-identity-test-$(date +%s)
 }
+
+###
+# Function used to deploy a squid proxy pod to a cluster
+###
+kube-squid-proxy() {
+  echo "INFO: Creating squid proxy pod in default namespace and forwarding port 3128 to localhost"
+  kubectl delete pod -n default squid-proxy 2>/dev/null >&2
+  kubectl run squid-proxy -n default --restart=Never --image=danisla/squid:3.5.27-2
+  kubectl wait --for=condition=ready -n default pod/squid-proxy
+  kubectl port-forward -n default squid-proxy 3128:3128
+  kubectl delete pod -n default squid-proxy
+}
