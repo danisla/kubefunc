@@ -13,6 +13,21 @@ function download-latest-k9s() {
   echo "INFO: Installed to: ${HOME}/bin/k9s"
 }
 
+function download-latest-opa() {
+  mkdir -p ${HOME}/bin
+  export URL=$(curl -s https://api.github.com/repos/open-policy-agent/opa/releases/latest | \
+    grep "https.*opa_linux_amd64" | \
+    cut -d : -f 2,3 | \
+    tr -d \" | tr -d ' ')
+  echo "INFO: Downloading OPA: $URL"
+  (
+    cd ${HOME}/bin && \
+    curl -sfL ${URL} > opa
+  )
+  chmod +x ${HOME}/bin/opa
+  echo "INFO: Installed to: ${HOME}/bin/opa"
+}
+
 function download-latest-istioctl() {
     mkdir -p ${HOME}/bin
     export URL=$(curl -s https://api.github.com/repos/istio/istio/releases/latest | \
