@@ -41,6 +41,19 @@ function download-latest-istioctl() {
     )
 }
 
+function install-krew() {
+  if [[ -d $HOME/.krew/bin ]]; then
+    echo "ERROR: krew already installed" && return 1
+  fi
+  (
+    set -x; cd "$(mktemp -d)" &&
+    curl -fsSLO "https://github.com/kubernetes-sigs/krew/releases/latest/download/krew.tar.gz" &&
+    tar zxvf krew.tar.gz &&
+    KREW=./krew-"$(uname | tr '[:upper:]' '[:lower:]')_$(uname -m | sed -e 's/x86_64/amd64/' -e 's/arm.*$/arm/' -e 's/aarch64$/arm64/')" &&
+    "$KREW" install krew
+  )
+}
+
 function kube-pod() {
   kubectl get pods --selector=run=$1 --output=jsonpath={.items..metadata.name}
 }
@@ -55,7 +68,7 @@ function helm-install-github() {
 }
 
 function install-kubectl() { 
-    K8S_VERSION=${1:-v1.11.1};
+    K8S_VERSION=${1:-v1.17.14};
     OS=$(uname)
     ARCH=amd64;
     ROOTFS=${HOME};
