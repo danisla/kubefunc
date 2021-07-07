@@ -19,23 +19,9 @@ function _kube_list_nodes() {
 
 function kube-node-admin() {
   NODE=$1
-  [[ -n "${NODE}" ]] && read -r -d '' SPEC_AFFINITY <<- EOM
-    "affinity": {
-      "nodeAffinity": {
-        "requiredDuringSchedulingIgnoredDuringExecution": {
-          "nodeSelectorTerms": [
-            {
-              "matchExpressions": [
-                {
-                  "key": "kubernetes.io/hostname",
-                  "operator": "In",
-                  "values": [ "${NODE}" ]
-                }
-              ]
-            }
-          ]
-        }
-      }
+  [[ -n "${NODE}" ]] && read -r -d '' SPEC_NODE_SELECTOR <<- EOM
+    "nodeSelector": {
+      "kubernetes.io/hostname": "${NODE}"
     },
 EOM
 
@@ -43,7 +29,13 @@ EOM
 {
   "apiVersion": "v1",
   "spec": {
-    ${SPEC_AFFINITY}
+    ${SPEC_NODE_SELECTOR}
+    "tolerations": [
+      {
+        "effect": "NoSchedule",
+        "operator": "Exists"
+      }
+    ],
     "hostNetwork": true,
     "hostPID": true,
     "containers": [{
