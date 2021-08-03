@@ -41,6 +41,18 @@ function download-latest-istioctl() {
     )
 }
 
+function download-latest-helm() {
+    mkdir -p ${HOME}/bin
+    export URL="https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get"
+    echo "INFO: Downloading helm: $URL"
+    (
+      cd ${HOME}/bin && \
+      curl -sfL ${URL} > /tmp/install-helm.sh && \
+        USE_SUDO=false HELM_INSTALL_DIR=$HOME/bin bash /tmp/install-helm.sh && \
+        rm -f install-helm.sh
+    )
+}
+
 function install-krew() {
   if [[ -d $HOME/.krew/bin ]]; then
     echo "ERROR: krew already installed" && return 1
@@ -160,7 +172,7 @@ EOM
   }
 }
 EOF
-  kubectl run node-admin -i -t --rm --restart=Never --image=debian:latest --overrides="${SPEC_JSON}"
+  kubectl run node-admin-$(date +%s) -i -t --rm --restart=Never --image=debian:latest --overrides="${SPEC_JSON}"
 }
 
 function kube-node-gcloud() {
