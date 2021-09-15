@@ -53,6 +53,13 @@ function download-latest-helm() {
     )
 }
 
+function download-latest-kustomize() {
+  KUSTOMIZE_VERSION=3.5.3
+  curl -sfL https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize/v${KUSTOMIZE_VERSION}/kustomize_v${KUSTOMIZE_VERSION}_linux_amd64.tar.gz | \
+    tar -O -zxvf - kustomize > ${HOME}/bin/kustomize
+  chmod +x ${HOME}/bin/kustomize
+}
+
 function install-krew() {
   if [[ -d $HOME/.krew/bin ]]; then
     echo "ERROR: krew already installed" && return 1
