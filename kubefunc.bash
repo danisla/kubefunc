@@ -628,3 +628,32 @@ kube-squid-proxy() {
   kubectl port-forward -n default squid-proxy 3128:3128
   kubectl delete pod -n default squid-proxy
 }
+
+kube-inspect-pull-secret() {
+  SECRET_NAME=$1
+  [[ -z "${SECRET_NAME}" ]] && echo "USAGE: kube-inspect-pull-secret [<secret namespace>/]<secret name>" && return 1
+  IFS="/" read -ra TOKS <<< "${SECRET_NAME}"
+  EXTRA_ARGS=""
+  if [[ ${#TOKS} -eq 2 ]]; then
+    EXTRA_ARGS="${EXTRA_ARGS} --namespace ${TOKS[0]}"
+    SECRET_NAME=${TOKS[1]}
+  fi
+  KUBE_ARGS=$(echo "${EXTRA_ARGS} ${SECRET_NAME}" | xargs)
+  kubectl get secret ${KUBE_ARGS} -o jsonpath="{.data.\.dockerconfigjson}" | base64 -d | jq .
+}
+
+kube-create-gcr-pull-secret() {
+  NAME=$1
+  REGISTRY=$2
+  SA_KEY=$3
+  [[ -z "${NAME}" || -z "${REGISTRY}" || ! -f ${SA_KEY} ]] && echo "USAGE: <name> <registry URL> <JSON SA key>" && return 1
+  DOCKER_EMAIL=$(jq -r .client_email "${SA_KEY}")
+
+  kubectl create secret docker-registry ${NAME} \
+  --docker-server=https://${REGISTRY/https:\/\//} \
+  --docker-email=${DOCKER_EMAIL} \
+  --docker-username=_json_key \
+  --docker-password="$(cat ${SA_KEY})" \
+  --dry-run \
+  -o yaml
+}
