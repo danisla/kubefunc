@@ -113,22 +113,8 @@ function kube-staging-prod-configs() {
 function kube-node-admin() {
   NODE=$1
   [[ -n "${NODE}" ]] && read -r -d '' SPEC_AFFINITY <<- EOM
-    "affinity": {
-      "nodeAffinity": {
-        "requiredDuringSchedulingIgnoredDuringExecution": {
-          "nodeSelectorTerms": [
-            {
-              "matchExpressions": [
-                {
-                  "key": "kubernetes.io/hostname",
-                  "operator": "In",
-                  "values": [ "${NODE}" ]
-                }
-              ]
-            }
-          ]
-        }
-      }
+    "nodeSelector": {
+      "kubernetes.io/hostname": "${NODE}"
     },
 EOM
 
