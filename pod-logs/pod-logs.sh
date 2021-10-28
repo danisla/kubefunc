@@ -37,6 +37,8 @@ function _kube_list_pod_containers() {
     while [[ $sel -lt 1 || $sel -gt $count ]]; do
       read -p "Select a Container: " sel >&2
     done
+  else
+    local sel=1
   fi
   echo "${items[(sel-1)]}"
 }
@@ -44,7 +46,8 @@ function _kube_list_pod_containers() {
 SEL=$(_kube_list_pods)
 IFS=":" read -ra POD <<< "${SEL}"
 
-if [[ "${POD[2],,}" != "running" ]]; then
+POD_STATUS=$(echo "${POD[2]}" | tr '[:upper:]' '[:lower:]')
+if [[ "${POD_STATUS}" != "running" ]]; then
   echo "ERROR: Pod ${POD[0]} is not running" >&2
   exit 1
 fi
