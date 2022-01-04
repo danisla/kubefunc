@@ -646,14 +646,14 @@ kube-create-gcr-pull-secret() {
   NAME=$1
   REGISTRY=$2
   SA_KEY=$3
-  [[ -z "${NAME}" || -z "${REGISTRY}" || ! -f ${SA_KEY} ]] && echo "USAGE: <name> <registry URL> <JSON SA key>" && return 1
+  NAMESPACE=$4
+  [[ -z "${NAME}" || -z "${REGISTRY}" || ! -f ${SA_KEY} || -z "${NAMESPACE}" ]] && echo "USAGE: <name> <registry URL> <JSON SA key> <namespace>" && return 1
   DOCKER_EMAIL=$(jq -r .client_email "${SA_KEY}")
 
   kubectl create secret docker-registry ${NAME} \
+  --namespace ${NAMESPACE} \
   --docker-server=https://${REGISTRY/https:\/\//} \
   --docker-email=${DOCKER_EMAIL} \
   --docker-username=_json_key \
-  --docker-password="$(cat ${SA_KEY})" \
-  --dry-run \
-  -o yaml
+  --docker-password="$(cat ${SA_KEY})"
 }
