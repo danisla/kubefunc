@@ -657,3 +657,36 @@ kube-create-gcr-pull-secret() {
   --docker-username=_json_key \
   --docker-password="$(cat ${SA_KEY})"
 }
+
+function kube-gce-pd-admin() {
+  PD=$1
+  [[ -z "${PD}" ]] && echo "USAGE: kube-pd-admin <pd name>" && return 1
+  read -r -d '' SPEC_JSON <<EOF
+{
+  "apiVersion": "v1",
+  "spec": {
+    "containers": [{
+      "name": "gce-pd-admin",
+      "image": "debian:latest",
+      "command": ["bash"],
+      "workingDir": "/mnt/disk",
+      "stdin": true,
+      "stdinOnce": true,
+      "tty": true,
+      "volumeMounts": [{
+        "name": "pd",
+        "mountPath": "/mnt/disk"
+      }]
+    }],
+    "volumes": [{
+      "name": "pd",
+      "gcePersistentDisk": {
+        "pdName": "${PD?}"
+      }
+    }]
+  }
+}
+EOF
+  echo "INFO: Starting pod with GCE PD ${PD} attached to /mnt/disk ..."
+  kubectl run gce-pd-admin-$(date +%s) -i -t --rm --restart=Never --image=debian:latest --overrides="${SPEC_JSON}"
+}
