@@ -38,11 +38,20 @@ function kube-node-admin() {
       }
     },
 EOM
+  read -r -d '' SPEC_TOLERATIONS <<- EOM
+    "tolerations": [
+      { "effect": "NoSchedule",
+        "key": "node-role.kubernetes.io/master",
+        "operator": "Exists"
+      }
+    ],
+EOM
 
   read -r -d '' SPEC_JSON <<EOF
 {
   "apiVersion": "v1",
   "spec": {
+    ${SPEC_TOLERATIONS}
     ${SPEC_AFFINITY}
     "hostNetwork": true,
     "hostPID": true,
