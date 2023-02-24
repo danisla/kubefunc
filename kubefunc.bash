@@ -1,7 +1,7 @@
 function download-latest-k9s() {
   mkdir -p ${HOME}/bin
   export URL=$(curl -s https://api.github.com/repos/derailed/k9s/releases/latest | \
-    grep "https.*Linux_x86_64.tar.gz" | \
+    grep "https.*Linux_amd64.tar.gz" | \
     cut -d : -f 2,3 | \
     tr -d \" | tr -d ' ')
   echo "INFO: Downloading K9s: $URL"
