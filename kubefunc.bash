@@ -43,13 +43,12 @@ function download-latest-istioctl() {
 
 function download-latest-helm() {
     mkdir -p ${HOME}/bin
-    export URL="https://raw.githubusercontent.com/kubernetes/helm/master/scripts/get"
+    TAG=$(curl -s "https://api.github.com/repos/helm/helm/tags" | jq -r '.[0].name')
+    export URL="https://get.helm.sh/helm-${TAG}-linux-amd64.tar.gz"
     echo "INFO: Downloading helm: $URL"
     (
       cd ${HOME}/bin && \
-      curl -sfL ${URL} > /tmp/install-helm.sh && \
-        USE_SUDO=false HELM_INSTALL_DIR=$HOME/bin bash /tmp/install-helm.sh && \
-        rm -f install-helm.sh
+      curl -sfL ${URL} | tar --strip-components 1 -zxvf - linux-amd64/helm
     )
 }
 
