@@ -29,7 +29,7 @@ function _kube_list_pod_containers() {
     printf "  $count) ${i}\n"
     ((count=count+1))
   done | column -t)
-  count=$(echo "$lines" | wc -l)
+  count=${#items[@]}
   if [[ $count -gt 1 ]]; then
     printf "\nPod has multiple containers:\n" >&2
     echo "$lines" >&2
@@ -37,14 +37,16 @@ function _kube_list_pod_containers() {
     while [[ $sel -lt 1 || $sel -gt $count ]]; do
       read -p "Select a Container: " sel >&2
     done
+    echo "${items[(sel-1)]}"
+  else
+    echo "${items}"
   fi
-  echo "${items[(sel-1)]}"
 }
 
 SEL=$(_kube_list_pods)
 IFS=":" read -ra POD <<< "${SEL}"
 
-if [[ "${POD[2],,}" != "running" ]]; then
+if [[ "${POD[2],,}" != "Running" ]]; then
   echo "ERROR: Pod ${POD[0]} is not running" >&2
   exit 1
 fi
