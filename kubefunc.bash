@@ -94,7 +94,8 @@ function install-kubectl() {
     ROOTFS=${HOME};
     BIN_DIR=bin;
     K8S_URL=${K8S_URL:-https://storage.googleapis.com/kubernetes-release/release};
-    curl -sfSL ${K8S_URL}/${K8S_VERSION}/bin/${OS,,}/${ARCH}/kubectl > ${ROOTFS}/${BIN_DIR}/kubectl;
+    OS_LOWER=$(echo "${OS}" | tr '[:upper:]' '[:lower:]')
+    curl -sfSL ${K8S_URL}/${K8S_VERSION}/bin/${OS_LOWER}/${ARCH}/kubectl > ${ROOTFS}/${BIN_DIR}/kubectl;
     [[ $? -ne 0 ]] && echo "ERROR: could not download kubectl" && return 1;
     chmod +x ${ROOTFS}/${BIN_DIR}/kubectl;
     echo "Installed kubectl in ${BIN_DIR}/kubectl"
